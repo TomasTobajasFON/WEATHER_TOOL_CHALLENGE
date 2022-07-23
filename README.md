@@ -3,5 +3,5 @@ Tool that returns the minimum and maximum temperature value for the municipality
 
 Instructions for using the tool:
 1. Run main.py
-2. Enter the name of the provincia.
-3. Enter the name of the municipio.
+2. Insert name of the provincia via terminal.
+3. Insert name of the municipio via terminal.
