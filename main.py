@@ -4,7 +4,6 @@ import requests
 
 # Logger configuration
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 def obtain_codprov(mi_provincia):
@@ -15,16 +14,19 @@ def obtain_codprov(mi_provincia):
     """
 
     endpoint = "https://www.el-tiempo.net/api/json/v2/municipios"
-
+    codprov = None
+    
     try:
         response = requests.get(url=endpoint, timeout=2)
         data = response.json()
         for i in range(len(data)):
             if data[i]['NOMBRE_PROVINCIA'] == mi_provincia:
                 codprov = data[i]['CODPROV']
-                # print(f'- CODPROV -> {codprov}')
-
                 return codprov
+        if codprov is None:
+            logger.error("No se ha encontrado la provincia introducida")
+            
+    # except KeyError
     except requests.ReadTimeout as ex:
         logger.error(str(time.strftime("%H:%M:%S")) + "- requests.ReadTimeout - " + str(ex))
     except requests.ConnectionError as ex:
@@ -40,7 +42,8 @@ def obtain_id(codprov, mi_municipio):
     """
 
     endpoint = "https://www.el-tiempo.net/api/json/v2/provincias/" + codprov + "/municipios"
-
+    id = None
+    
     try:
         response = requests.get(url=endpoint, timeout=2)
         data = response.json()
@@ -49,9 +52,15 @@ def obtain_id(codprov, mi_municipio):
             if data["municipios"][i]['NOMBRE'] == mi_municipio:
                 codigoine = data["municipios"][i]['CODIGOINE']
                 id = codigoine[0:5]
-                # print(f'- ID -> {id}')
-
-                return id
+                break
+            
+        if id is None:
+            logger.error("No se ha encontrado el id del municipio introducido.")
+        
+        return id
+            
+    # except KeyError
+    
     except requests.ReadTimeout as ex:
         logger.error(str(time.strftime("%H:%M:%S")) + "- requests.ReadTimeout - " + str(ex))
     except requests.ConnectionError as ex:
@@ -90,14 +99,18 @@ if __name__ == '__main__':
 
     # FIRST: obtain [CODPROV] of the municipio
     codprov = obtain_codprov(mi_provincia)
+    if codprov == None:
+        logger.error("Fallo al obtener el código de provincia.")
+    else:
+        # SECOND: obtain [ID] of the municipio
+        id = obtain_id(codprov, mi_municipio)
+        if id == None:
+            logger.error("Fallo al obtener el id.")
+        else:
+            # THIRD: obtain min and max temperature of the municipio
+            max_temp, min_temp = obtain_min_max_temperature(codprov, id)
 
-    # SECOND: obtain [ID] of the municipio
-    id = obtain_id(codprov, mi_municipio)
-
-    # THIRD: obtain min and max temperature of the municipio
-    max_temp, min_temp = obtain_min_max_temperature(codprov, id)
-
-    # Output information
-    print(f'\n\033[1mINFORMACIÓN RELATIVA A {mi_municipio} ({mi_provincia})')
-    print(f'-> TEMPERATURA MAX DE HOY: {max_temp}º')
-    print(f'-> TEMPERATURA MIN DE HOY: {min_temp}º')
+            # Output information
+            print(f'\n\033[1mINFORMACIÓN RELATIVA A {mi_municipio} ({mi_provincia})')
+            print(f'-> TEMPERATURA MAX DE HOY: {max_temp}º')
+            print(f'-> TEMPERATURA MIN DE HOY: {min_temp}º')
